@@ -32,10 +32,8 @@ jobs:
         cp index.html myapp/www/index.html
         cd myapp
         
-        # СНАЧАЛА устанавливаем платформу Android
         cordova platform add android
         
-        # ТЕПЕРЬ копируем иконку (папка уже создана)
         if [ -f "../icon.png" ]; then
           cp ../icon.png platforms/android/app/src/main/res/mipmap-hdpi/ic_launcher.png
           cp ../icon.png platforms/android/app/src/main/res/mipmap-mdpi/ic_launcher.png
@@ -44,12 +42,13 @@ jobs:
           cp ../icon.png platforms/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
         fi
         
-        # Исправляем манифест
         sed -i 's/<application/<application android:usesCleartextTraffic="true" android:hardwareAccelerated="true"/' platforms/android/app/src/main/AndroidManifest.xml
         
-        # Собираем и подписываем
-        cordova build android --release
+        # ВОТ ЗДЕСЬ МЫ ПРОСИМ СОБРАТЬ ИМЕННО APK, А НЕ AAB
+        cordova build android --release -- --packageType=apk
+        
         keytool -genkey -v -keystore my-release-key.keystore -alias alias_name -keyalg RSA -keysize 2048 -validity 10000 -storepass password -keypass password -dname "CN=My Name, OU=My Organization, O=My Company, L=My City, S=My State, C=US"
+        
         jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore my-release-key.keystore platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk alias_name -storepass password -keypass password
 
     - name: Upload Signed APK
