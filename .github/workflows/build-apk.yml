@@ -32,7 +32,10 @@ jobs:
         cp index.html myapp/www/index.html
         cd myapp
         
-        # Устанавливаем иконку (проверяем наличие файла)
+        # СНАЧАЛА устанавливаем платформу Android
+        cordova platform add android
+        
+        # ТЕПЕРЬ копируем иконку (папка уже создана)
         if [ -f "../icon.png" ]; then
           cp ../icon.png platforms/android/app/src/main/res/mipmap-hdpi/ic_launcher.png
           cp ../icon.png platforms/android/app/src/main/res/mipmap-mdpi/ic_launcher.png
