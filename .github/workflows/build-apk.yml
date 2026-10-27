@@ -31,16 +31,15 @@ jobs:
         cordova create myapp com.mikheil.dosetracker "DoseTracker4"
         cp index.html myapp/www/index.html
         cd myapp
-        
-        # Включаем правильные настройки для Android
         cordova platform add android
-        sed -i 's/<application/<application android:usesCleartextTraffic="true" android:hardwareAccelerated="true"/' platforms/android/app/src/main/AndroidManifest.xml
+        cordova build android --release
         
-        # Собираем релизную версию (она ставится нормально)
-        cordova build android --release -- --packageType=apk
+        # Генерируем ключ и подписываем APK
+        keytool -genkey -v -keystore my-release-key.keystore -alias alias_name -keyalg RSA -keysize 2048 -validity 10000 -storepass password -keypass password -dname "CN=My Name, OU=My Organization, O=My Company, L=My City, S=My State, C=US"
+        jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore my-release-key.keystore platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk alias_name -storepass password -keypass password
 
-    - name: Upload APK
+    - name: Upload Signed APK
       uses: actions/upload-artifact@v4
       with:
-        name: Dose-Tracker-4-APK
+        name: Dose-Tracker-4-Signed-APK
         path: myapp/platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
