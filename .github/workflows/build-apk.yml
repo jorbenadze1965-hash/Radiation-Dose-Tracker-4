@@ -32,12 +32,10 @@ jobs:
         run: |
           set -e
           cordova create myapp com.mikheil.dosetracker "DoseTracker4"
-cp index.html myapp/www/index.html
-mkdir -p myapp/res
-cp "Radiation Dose Tracker Icon.png" myapp/res/icon.png
-python3 -c 'from pathlib import Path; p=Path("myapp/config.xml"); s=p.read_text(); s=s.replace("</widget>", "    <icon src=\"res/icon.png\" />\n</widget>"); p.write_text(s)'
-
-cd myapp
+          cp index.html myapp/www/index.html
+          mkdir -p myapp/res
+          cp "Radiation Dose Tracker Icon.png" myapp/res/icon.png
+          python3 -c 'from pathlib import Path; p=Path("myapp/config.xml"); s=p.read_text(); s=s.replace("</widget>", "    <icon src=\"res/icon.png\" />\n</widget>"); p.write_text(s)'
           cd myapp
           cordova platform add android
           cordova build android --release
