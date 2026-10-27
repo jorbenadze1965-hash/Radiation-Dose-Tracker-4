@@ -26,10 +26,7 @@ jobs:
         distribution: 'temurin'
         java-version: '17'
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-
-    - name: Create Cordova Project
+    - name: Create Cordova Project and Build
       run: |
         cordova create myapp com.mikheil.dosetracker "DoseTracker4"
         cp index.html myapp/www/index.html
