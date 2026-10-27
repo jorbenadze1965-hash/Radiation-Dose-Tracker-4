@@ -32,12 +32,14 @@ jobs:
         cp index.html myapp/www/index.html
         cd myapp
         
-        # Устанавливаем иконку
-        cp ../icon.png platforms/android/app/src/main/res/mipmap-hdpi/ic_launcher.png
-        cp ../icon.png platforms/android/app/src/main/res/mipmap-mdpi/ic_launcher.png
-        cp ../icon.png platforms/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
-        cp ../icon.png platforms/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-        cp ../icon.png platforms/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+        # Устанавливаем иконку (проверяем наличие файла)
+        if [ -f "../icon.png" ]; then
+          cp ../icon.png platforms/android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+          cp ../icon.png platforms/android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+          cp ../icon.png platforms/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+          cp ../icon.png platforms/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          cp ../icon.png platforms/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+        fi
         
         # Исправляем манифест
         sed -i 's/<application/<application android:usesCleartextTraffic="true" android:hardwareAccelerated="true"/' platforms/android/app/src/main/AndroidManifest.xml
