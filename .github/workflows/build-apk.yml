@@ -2,57 +2,101 @@ name: Build Android APK
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Install Cordova
-      run: npm install -g cordova
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
 
-    - name: Setup Java
-      uses: actions/setup-java@v5
-      with:
-        distribution: 'temurin'
-        java-version: '17'
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
 
-    - name: Create Cordova Project and Build
-      run: |
-        cordova create myapp com.mikheil.dosetracker "Dose Tracker 4"
-        cp index.html myapp/www/index.html
-        cd myapp
-        
-        cordova platform add android
-        
-        if [ -f "../icon.png" ]; then
-          cp ../icon.png platforms/android/app/src/main/res/mipmap-hdpi/ic_launcher.png
-          cp ../icon.png platforms/android/app/src/main/res/mipmap-mdpi/ic_launcher.png
-          cp ../icon.png platforms/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
-          cp ../icon.png platforms/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
-          cp ../icon.png platforms/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
-        fi
-        
-        sed -i 's/<application/<application android:usesCleartextTraffic="true" android:hardwareAccelerated="true"/' platforms/android/app/src/main/AndroidManifest.xml
-        
-        # ВОТ ЗДЕСЬ МЫ ПРОСИМ СОБРАТЬ ИМЕННО APK, А НЕ AAB
-        cordova build android --release -- --packageType=apk
-        
-        keytool -genkey -v -keystore my-release-key.keystore -alias alias_name -keyalg RSA -keysize 2048 -validity 10000 -storepass password -keypass password -dname "CN=My Name, OU=My Organization, O=My Company, L=My City, S=My State, C=US"
-        
-        jarsigner -verbose -sigalg SHA1withRSA -digestalg SHA1 -keystore my-release-key.keystore platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk alias_name -storepass password -keypass password
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-    - name: Upload Signed APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: Dose-Tracker-4-Signed-APK
-        path: myapp/platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
+      - name: Install Cordova
+        run: npm install -g cordova@12
+
+      - name: Create Cordova project
+        run: |
+          test -s index.html
+          test -s icon.png
+
+          cordova create myapp com.mikheil.dosetracker "Dose Tracker 4"
+
+          cp index.html myapp/www/index.html
+          cp icon.png myapp/www/icon.png
+
+          mkdir -p myapp/res
+          cp icon.png myapp/res/icon.png
+
+      - name: Configure Android icons
+        working-directory: myapp
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+
+          const densities = [
+            'ldpi', 'mdpi', 'hdpi',
+            'xhdpi', 'xxhdpi', 'xxxhdpi'
+          ];
+
+          fs.writeFileSync(
+            'res/icon-background.xml',
+            '<?xml version="1.0" encoding="utf-8"?>' +
+            '<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">' +
+            '<solid android:color="#FFFFFF" />' +
+            '</shape>'
+          );
+
+          const icons = densities.map(density =>
+            `<icon density="${density}" ` +
+            'src="res/icon.png" ' +
+            'foreground="res/icon.png" ' +
+            'background="res/icon-background.xml" />'
+          ).join('\n');
+
+          let xml = fs.readFileSync('config.xml', 'utf8');
+
+          if (!xml.includes('</widget>')) {
+            throw new Error('Closing widget tag not found');
+          }
+
+          xml = xml.replace(
+            '</widget>',
+            `<platform name="android">\n${icons}\n</platform>\n</widget>`
+          );
+
+          fs.writeFileSync('config.xml', xml);
+          NODE
+
+      - name: Add Android platform
+        working-directory: myapp
+        run: cordova platform add android@14.0.1
+
+      - name: Build test APK
+        working-directory: myapp
+        run: cordova build android --debug -- --packageType=apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dose-Tracker-4-APK
+          path: myapp/platforms/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
