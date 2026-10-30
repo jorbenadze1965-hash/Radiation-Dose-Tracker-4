@@ -1,0 +1,12 @@
+{
+  "background_color": "#ffffff",
+  "description": "K-40 from Coffee and Drinking Water",
+  "dir": "ltr",
+  "display": "standalone",
+  "name": "Radiation Dose Tracker 4",
+  "orientation": "any",
+  "scope": "/",
+  "short_name": "Dose Tracker 4",
+  "start_url": "/",
+  "theme_color": "#10243a"
+}
