@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Radiation Editor — Mikheil Jorbenadze</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --navy: #0a192f; --light-navy: #112240; --lightest-navy: #233554; --slate: #8892b0; --white: #e6f1ff; --green: #64ffda; --blue: #57cbff; --red: #ff6b6b; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: var(--navy); color: var(--white); display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        header { background-color: var(--light-navy); padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--lightest-navy); }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .logo-icon { width: 40px; height: 40px; }
+        .header-titles { display: flex; flex-direction: column; }
+        .logo { font-size: 1.2rem; font-weight: bold; color: var(--green); letter-spacing: 1px; }
+        .author { font-size: 0.8rem; color: var(--slate); }
+        .header-right { display: flex; align-items: center; gap: 20px; }
+        .lang-btn { background: transparent; border: 1px solid var(--blue); color: var(--blue); padding: 5px 15px; border-radius: 15px; cursor: pointer; font-weight: bold; }
+        .tabs { display: flex; gap: 10px; }
+        .tab-btn { background: transparent; color: var(--slate); border: 1px solid transparent; padding: 8px 16px; cursor: pointer; font-weight: bold; border-radius: 4px; }
+        .tab-btn.active { color: var(--navy); background-color: var(--green); }
+        .main-container { display: flex; flex: 1; overflow: hidden; }
+        .sidebar { width: 260px; background-color: var(--light-navy); border-right: 1px solid var(--lightest-navy); padding: 20px; display: flex; flex-direction: column; gap: 15px; overflow-y: auto; }
+        .tool-btn { background-color: var(--lightest-navy); color: var(--white); border: none; padding: 10px; text-align: left; cursor: pointer; border-radius: 4px; font-size: 0.9rem; }
+        .tool-btn:hover { background-color: var(--blue); color: var(--navy); }
+        .tool-btn.help-btn { background-color: var(--green); color: var(--navy); font-weight: bold; }
+        .workspace { flex: 1; display: flex; flex-direction: column; background-color: var(--navy); }
+        .formula-bar { background-color: var(--lightest-navy); padding: 10px 20px; display: flex; gap: 10px; flex-wrap: wrap; border-bottom: 1px solid var(--light-navy); }
+        .formula-btn { background-color: var(--navy); color: var(--green); border: 1px solid var(--green); padding: 5px 10px; cursor: pointer; border-radius: 3px; font-size: 0.8rem; }
+        .formula-btn:hover { background-color: var(--green); color: var(--navy); }
+        .content { flex: 1; padding: 20px; overflow-y: auto; display: none; }
+        .content.active { display: block; }
+        .word-controls { margin-bottom: 10px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .word-area { width: 100%; height: 65%; background-color: var(--light-navy); color: var(--white); border: 1px solid var(--lightest-navy); padding: 20px; font-size: 1rem; line-height: 1.6; outline: none; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; background-color: var(--light-navy); }
+        th, td { border: 1px solid var(--lightest-navy); padding: 10px; text-align: center; color: var(--white); }
+        th { background-color: var(--lightest-navy); color: var(--blue); }
+        input[type="text"], input[type="number"] { background: transparent; border: none; color: var(--white); width: 100%; text-align: center; outline: none; font-size: 1rem; }
+        .calc-result { background-color: var(--lightest-navy); padding: 15px; border-radius: 5px; border-left: 4px solid var(--green); display: none; }
+        .calc-result.show { display: block; }
+        .slide-canvas { width: 100%; height: 100%; background-color: var(--light-navy); border: 1px solid var(--lightest-navy); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .chart-container { width: 100%; max-width: 800px; height: 400px; margin-top: 20px; display: none; background: white; padding: 10px; border-radius: 8px;}
+        .chart-controls { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 25, 47, 0.9); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: var(--light-navy); padding: 30px; border-radius: 10px; border: 1px solid var(--blue); width: 450px; display: flex; flex-direction: column; gap: 15px; max-height: 90vh; overflow-y: auto; }
+        .modal-content h2 { color: var(--green); margin-bottom: 10px; }
+        .input-group { display: flex; flex-direction: column; gap: 5px; }
+        .input-group label { font-size: 0.9rem; color: var(--slate); }
+        .input-group input, .input-group select { padding: 8px; background: var(--navy); border: 1px solid var(--lightest-navy); color: var(--white); border-radius: 4px; font-size: 1rem; }
+        .close-btn { background: var(--red); color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .info-text { color: var(--slate); font-size: 0.9rem; }
+        .help-step { background: var(--navy); padding: 15px; border-radius: 6px; margin-bottom: 10px; border-left: 3px solid var(--blue); }
+        .help-step h3 { color: var(--blue); font-size: 1rem; margin-bottom: 5px; }
+        .help-step p { color: var(--white); font-size: 0.9rem; line-height: 1.4; }
+        .hint-text { color: var(--red); font-size: 0.8rem; margin-top: 5px; }
+        .save-indicator { font-size: 0.75rem; color: var(--green); opacity: 0; transition: opacity 0.5s; position: absolute; right: 20px; bottom: 10px; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-left">
+            <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+                <rect width="100" height="100" rx="15" fill="#0a192f"/>
+                <ellipse cx="50" cy="50" rx="35" ry="15" fill="none" stroke="#57cbff" stroke-width="2" transform="rotate(45 50 50)"/>
+                <ellipse cx="50" cy="50" rx="35" ry="15" fill="none" stroke="#57cbff" stroke-width="2" transform="rotate(-45 50 50)"/>
+                <circle cx="50" cy="50" r="8" fill="#64ffda"/>
+            </svg>
+            <div class="header-titles">
+                <div class="logo">RADIATION EDITOR 1.1.0</div>
+                <div class="author">by Mikheil Jorbenadze</div>
+            </div>
+        </div>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab(event, 'word')">WORD</button>
+            <button class="tab-btn" onclick="switchTab(event, 'excel')">EXCEL</button>
+            <button class="tab-btn" onclick="switchTab(event, 'powerpoint')">POWERPOINT</button>
+        </div>
+        <div class="header-right">
+            <button class="lang-btn" onclick="toggleLanguage()" id="lang-btn">🌐 EN</button>
+        </div>
+    </header>
+    <div class="main-container">
+        <div class="sidebar">
+            <h3>Данные</h3>
+            <button class="tool-btn help-btn" onclick="openModal('help-modal')">📖 Инструкция</button>
+            <button class="tool-btn" onclick="openModal('isotope-modal')">🧪 Справочник изотопов</button>
+            <button class="tool-btn" onclick="openModal('shielding-modal')">🛡️ Калькулятор защиты</button>
+            <button class="tool-btn" onclick="openModal('converter-modal')">🔄 Конвертер Бк → Зв</button>
+            <button class="tool-btn" style="margin-top:20px;" onclick="exportToWord()">Экспорт в Word</button>
+        </div>
+        <div class="workspace">
+            <div class="formula-bar">
+                <span style="color: var(--slate); font-size: 0.8rem; align-self: center;">ФОРМУЛЫ:</span>
+                <button class="formula-btn" onclick="calcActivity()">ACTIVITY</button>
+                <button class="formula-btn" onclick="calcDecay()">DECAY</button>
+                <button class="formula-btn" onclick="calcDose()">DOSE</button>
+            </div>
+            <div id="word-content" class="content active">
+                <button class="formula-btn" onclick="insertFromExcel()">⬇ Вставить расчет</button>
+                <button class="formula-btn" onclick="insertChartToWord()">🖼️ Вставить график</button>
+                <div id="word-editor" class="word-area" contenteditable="true" oninput="saveData()">
+                    <h1>Отчет по радиационному мониторингу</h1>
+                    <p>Введите текст здесь...</p>
+                </div>
+            </div>
+            <div id="excel-content" class="content">
+                <table id="data-table">
+                    <tr><th>N0</th><th>T1/2 (сек)</th><th>t (сек)</th><th>Описание</th></tr>
+                    <tr>
+                        <td><input type="text" id="in-n0" value="1000000" oninput="saveData()"></td>
+                        <td><input type="text" id="in-t12" value="3.7e10" oninput="saveData()"></td>
+                        <td><input type="text" id="in-t" value="100" oninput="saveData()"></td>
+                        <td><input type="text" id="in-desc" value="Проба 1" oninput="saveData()"></td>
+                    </tr>
+                </table>
+                <p class="hint-text">💡 Подсказка: Нажмите "Справочник изотопов" слева.</p>
+                <div id="calc-result-box" class="calc-result"><strong>Результат:</strong> <span id="calc-result-text"></span></div>
+            </div>
+            <div id="powerpoint-content" class="content">
+                <div class="slide-canvas">
+                    <div class="chart-controls">
+                        <button class="formula-btn" onclick="buildDecayChart()">📉 Распад</button>
+                        <button class="formula-btn" onclick="buildShieldingChart()">🛡️ Защита</button>
+                        <button class="formula-btn" onclick="buildDoseChart()">☢️ Доза</button>
+                    </div>
+                    <div class="chart-container" id="chart-wrapper"><canvas id="mainChart"></canvas></div>
+                    <button class="formula-btn" style="margin-top: 15px; display: none;" id="btn-download-chart" onclick="downloadChart()">📥 Скачать график (PNG)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="save-indicator" class="save-indicator">💾 Сохранено</div>
+
+    <div class="modal-overlay" id="help-modal">
+        <div class="modal-content">
+            <h2>📖 Инструкция</h2>
+            <div class="help-step"><h3>1. Excel</h3><p>Введите данные и выберите изотоп.</p></div>
+            <div class="help-step"><h3>2. Расчеты</h3><p>Нажмите ACTIVITY или DECAY.</p></div>
+            <div class="help-step"><h3>3. Графики</h3><p>Постройте график в PowerPoint и скачайте его.</p></div>
+            <button class="close-btn" onclick="closeModal('help-modal')">Понятно</button>
+        </div>
+    </div>
+    <div class="modal-overlay" id="isotope-modal">
+        <div class="modal-content">
+            <h2>🧪 Изотопы</h2>
+            <select id="iso-select">
+                <option value="3.94e16|K-40">Калий-40 (K-40)</option>
+                <option value="9.51e8|Cs-137">Цезий-137 (Cs-137)</option>
+                <option value="1.66e8|Co-60">Кобальт-60 (Co-60)</option>
+            </select>
+            <button class="formula-btn" onclick="applyIsotope()">Применить</button>
+            <button class="close-btn" onclick="closeModal('isotope-modal')">Закрыть</button>
+        </div>
+    </div>
+    <div class="modal-overlay" id="shielding-modal">
+        <div class="modal-content">
+            <h2>🛡️ Защита</h2>
+            <input type="number" id="shield-i0" value="100" placeholder="I0 (мкЗв/ч)"><br>
+            <select id="shield-mat"><option value="0.12">Свинец</option><option value="0.05">Бетон</option></select><br>
+            <input type="number" id="shield-x" value="5" placeholder="Толщина (см)">
+            <div id="shield-result-box" style="display: none; margin-top:10px; color: var(--green);"></div>
+            <button class="formula-btn" onclick="calculateShielding()">Рассчитать</button>
+            <button class="close-btn" onclick="closeModal('shielding-modal')">Закрыть</button>
+        </div>
+    </div>
+    <div class="modal-overlay" id="converter-modal">
+        <div class="modal-content">
+            <h2>🔄 Конвертер</h2>
+            <input type="number" id="conv-bq" value="1000000" placeholder="Активность (Бк)">
+            <div id="conv-result-box" style="display: none; margin-top:10px; color: var(--blue);"></div>
+            <button class="formula-btn" onclick="calculateConversion()">Конвертировать</button>
+            <button class="close-btn" onclick="closeModal('converter-modal')">Закрыть</button>
+        </div>
+    </div>
+
+    <script>
+        let myChart = null, lastActivity = null, currentChartImage = null;
+
+        function saveData() {
+            const data = { n0: document.getElementById('in-n0').value, t12: document.getElementById('in-t12').value, t: document.getElementById('in-t').value, desc: document.getElementById('in-desc').value, wordText: document.getElementById('word-editor').innerHTML };
+            localStorage.setItem('radiationEditorData', JSON.stringify(data));
+            const ind = document.getElementById('save-indicator');
+            ind.style.opacity = '1'; setTimeout(() => ind.style.opacity = '0', 1500);
+        }
+
+        function loadData() {
+            const saved = localStorage.getItem('radiationEditorData');
+            if (saved) {
+                const data = JSON.parse(saved);
+                document.getElementById('in-n0').value = data.n0 || "1000000";
+                document.getElementById('in-t12').value = data.t12 || "3.7e10";
+                document.getElementById('in-t').value = data.t || "100";
+                document.getElementById('in-desc').value = data.desc || "Проба 1";
+                if(data.wordText) document.getElementById('word-editor').innerHTML = data.wordText;
+            }
+        }
+        window.onload = loadData;
+
+        function switchTab(e, id) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+            e.target.classList.add('active');
+            document.getElementById(id + '-content').classList.add('active');
+            document.getElementById('btn-download-chart').style.display = (id === 'powerpoint' && myChart) ? 'block' : 'none';
+        }
+
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        function toggleLanguage() {
+            alert("Переключение языка в разработке (скоро будет)");
+        }
+
+        function applyIsotope() {
+            const parts = document.getElementById('iso-select').value.split('|');
+            document.getElementById('in-t12').value = parts[0];
+            document.getElementById('in-desc').value = parts[1];
+            saveData(); closeModal('isotope-modal');
+        }
+
+        function calcActivity() {
+            const N = parseFloat(document.getElementById('in-n0').value), T12 = parseFloat(document.getElementById('in-t12').value);
+            if (isNaN(N) || isNaN(T12)) return alert("Проверьте данные");
+            lastActivity = (0.693 * N) / T12;
+            showResult(`Активность: ${lastActivity.toExponential(2)} Bq`);
+        }
+
+        function calcDecay() {
+            const N0 = parseFloat(document.getElementById('in-n0').value), T12 = parseFloat(document.getElementById('in-t12').value), t = parseFloat(document.getElementById('in-t').value);
+            if (isNaN(N0) || isNaN(T12) || isNaN(t)) return alert("Проверьте данные");
+            showResult(`Осталось ядер: ${(N0 * Math.pow(0.5, (t / T12))).toExponential(2)}`);
+        }
+
+        function calcDose() {
+            if (!lastActivity) return alert("Сначала рассчитайте АКТИВНОСТЬ");
+            showResult(`Доза за 1 час: ${(lastActivity * 3600 * 1e-6).toExponential(2)} µSv`);
+        }
+
+        function showResult(text) {
+            document.getElementById('calc-result-text').innerText = text;
+            document.getElementById('calc-result-box').classList.add('show');
+        }
+
+        function insertFromExcel() {
+            const box = document.getElementById('calc-result-text').innerText;
+            if (!box) return alert("Сначала сделайте расчет в Excel.");
+            switchTab({target: document.querySelectorAll('.tab-btn')[0]}, 'word');
+            const p = document.createElement('p'); p.style.color = "var(--green)"; p.innerText = `[Расчет]: ${box}`;
+            document.getElementById('word-editor').appendChild(p); saveData();
+        }
+
+        function calculateConversion() {
+            const bq = parseFloat(document.getElementById('conv-bq').value);
+            if (isNaN(bq)) return alert("Проверьте данные");
+            document.getElementById('conv-result-box').innerText = `Мощность дозы: ${(bq * 1e-6).toExponential(2)} мкЗв/ч`;
+            document.getElementById('conv-result-box').style.display = 'block';
+        }
+
+        function calculateShielding() {
+            const I0 = parseFloat(document.getElementById('shield-i0').value), mu = parseFloat(document.getElementById('shield-mat').value), x = parseFloat(document.getElementById('shield-x').value);
+            if (isNaN(I0) || isNaN(mu) || isNaN(x)) return alert("Проверьте данные");
+            document.getElementById('shield-result-box').innerText = `Интенсивность: ${(I0 * Math.exp(-mu * x)).toFixed(2)} мкЗв/ч`;
+            document.getElementById('shield-result-box').style.display = 'block';
+        }
+
+        function createChart(labels, data, label, title, xTitle) {
+            document.getElementById('chart-wrapper').style.display = 'block';
+            if (myChart) { myChart.destroy(); }
+            myChart = new Chart(document.getElementById('mainChart').getContext('2d'), {
+                type: 'line', data: { labels: labels, datasets: [{ label: label, data: data, borderColor: '#0a192f', backgroundColor: 'rgba(87, 203, 255, 0.2)', borderWidth: 2, fill: true, tension: 0.3 }] },
+                options: { responsive: true, maintainAspectRatio: false, animation: { onComplete: () => { currentChartImage = myChart.toBase64Image(); document.getElementById('btn-download-chart').style.display = 'block'; } }, plugins: { title: { display: true, text: title, color: '#0a192f' }, legend: { labels: { color: '#0a192f' } } }, scales: { x: { ticks: { color: '#0a192f' }, title: { display: true, text: xTitle, color: '#0a192f' } }, y: { ticks: { color: '#0a192f' } } } }
+            });
+        }
+
+        function buildDecayChart() {
+            const N0 = parseFloat(document.getElementById('in-n0').value), T12 = parseFloat(document.getElementById('in-t12').value);
+            if (isNaN(N0) || isNaN(T12) || T12 === 0) return alert("Проверьте данные");
+            const labels = [], data = [];
+            for (let i = 0; i <= 20; i++) { labels.push((i * 0.25).toFixed(1) + ' T½'); data.push(N0 * Math.pow(0.5, i * 0.25)); }
+            createChart(labels, data, "N(t)", "Кривая распада", "Время (в T½)");
+        }
+
+        function buildShieldingChart() {
+            const I0 = parseFloat(document.getElementById('shield-i0').value) || 100, mu = parseFloat(document.getElementById('shield-mat').value) || 0.12;
+            const labels = [], data = [];
+            for (let i = 0; i <= 20; i++) { const x = i; labels.push(x + ' см'); data.push(I0 * Math.exp(-mu * x)); }
+            createChart(labels, data, "Интенсивность", "Ослабление защиты", "Толщина (см)");
+        }
+
+        function buildDoseChart() {
+            if (!lastActivity) return alert("Сначала рассчитайте АКТИВНОСТЬ");
+            const labels = [], data = [];
+            for (let i = 0; i <= 10; i++) { labels.push(i + ' ч'); data.push(lastActivity * (i * 3600) * 1e-6); }
+            createChart(labels, data, "Доза", "Накопление дозы", "Время (часы)");
+        }
+
+        function insertChartToWord() {
+            if (!currentChartImage) return alert("Сначала постройте график.");
+            switchTab({target: document.querySelectorAll('.tab-btn')[0]}, 'word');
+            const img = document.createElement('img'); img.src = currentChartImage; img.style.width = "100%"; img.style.marginTop = "20px";
+            document.getElementById('word-editor').appendChild(img); saveData();
+        }
+
+        function exportToWord() {
+            const content = document.getElementById('word-editor').innerHTML;
+            const html = `
+                <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+                <head><meta charset='utf-8'><title>Report</title></head>
+                <body>${content}</body>
+                </html>
+            `;
+            const blob = new Blob([html], {type: 'application/msword'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Radiation_Report.doc';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function downloadChart() {
+            const a = document.createElement('a'); a.href = currentChartImage; a.download = 'Chart.png'; a.click();
+        }
+    </script>
+</body>
+</html>
