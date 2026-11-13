@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Safe Distance Calculator — Mikheil Jorbenadze</title>
+<style>
+    body { background-color: #0a192f; color: #e6f1ff; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+    .container { background-color: #112240; padding: 30px; border-radius: 10px; border: 1px solid #57cbff; max-width: 550px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+    
+    .header-author { text-align: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #233554; }
+    .header-author h1 { color: #64ffda; font-size: 1.5rem; margin: 0 0 5px 0; }
+    .header-author .subtitle { font-size: 0.85rem; color: #8892b0; margin-bottom: 10px; }
+    .header-author a { color: #57cbff; text-decoration: none; margin: 0 5px; font-size: 0.85rem; transition: 0.2s; }
+    .header-author a:hover { color: #64ffda; text-decoration: underline; }
+    .header-author strong { color: #e6f1ff; }
+
+    label { display: block; margin-top: 15px; color: #8892b0; font-size: 0.9rem; }
+    select, input { width: 100%; padding: 10px; margin-top: 5px; background-color: #0a192f; border: 1px solid #57cbff; color: #e6f1ff; border-radius: 4px; font-size: 1rem; box-sizing: border-box; }
+    button { margin-top: 25px; width: 100%; padding: 12px; background-color: #64ffda; color: #0a192f; border: none; border-radius: 4px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.3s; }
+    button:hover { background-color: #57cbff; }
+    
+    .visual-gauge { margin-top: 25px; position: relative; height: 50px; background: linear-gradient(to right, #ff6b6b 0%, #ff6b6b 30%, #ffd93d 30%, #ffd93d 60%, #64ffda 60%, #64ffda 100%); border-radius: 8px; overflow: hidden; display: none; border: 2px solid #233554; }
+    .visual-gauge.show { display: block; }
+    .gauge-marker { position: absolute; top: 0; width: 6px; height: 100%; background-color: #000; box-shadow: 0 0 0 2px #fff; transition: left 0.5s ease-out; z-index: 10; }
+    .gauge-label { position: absolute; bottom: 5px; width: 100%; text-align: center; color: #0a192f; font-weight: bold; font-size: 0.75rem; text-shadow: 1px 1px 0 rgba(255,255,255,0.5); z-index: 5; }
+
+    .result { margin-top: 20px; padding: 15px; background-color: #0a192f; border-left: 4px solid #64ffda; display: none; }
+    .result.show { display: block; }
+    .result h2 { margin: 0; font-size: 1.2rem; color: #64ffda; }
+    .result p { margin: 5px 0 0; font-size: 1rem; }
+    
+    .alert-box { margin-top: 20px; padding: 15px; border-radius: 8px; text-align: center; display: none; font-weight: bold; font-size: 1.1rem; }
+    .alert-box.danger { display: block; background-color: #ff6b6b; color: #0a192f; }
+    .alert-box.warning { display: block; background-color: #ffd93d; color: #0a192f; }
+    .alert-box.safe { display: block; background-color: #64ffda; color: #0a192f; }
+
+    #slideCanvas { display: none; }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-author">
+        <h1>☢️ Safe Distance Calculator</h1>
+        <div class="subtitle"><strong>Developed by Mikheil Jorbenadze, PhD</strong><br>Independent Researcher · Radiation Safety</div>
+        <div>
+            <a href="https://mikheiljorbenadze.carrd.co/" target="_blank">Portfolio</a> | 
+            <a href="https://scholar.google.com/citations?user=IKgPLYEAAAAJ&hl=en" target="_blank">Google Scholar</a>
+        </div>
+    </div>
+    
+    <label for="isotope">Select Isotope:</label>
+    <select id="isotope">
+        <option value="0.0033">Cobalt-60 (Co-60)</option>
+        <option value="0.00077">Cesium-137 (Cs-137)</option>
+        <option value="0.0013">Iridium-192 (Ir-192)</option>
+        <option value="0.00032">Iodine-131 (I-131)</option>
+        <option value="0.00023">Radium-226 (Ra-226)</option>
+        <option value="0.0001">Uranium-235 (U-235)</option>
+        <option value="0.0005">Plutonium-239 (Pu-239)</option>
+        <option value="0.0002">Strontium-90 (Sr-90)</option>
+        <option value="0.00001">Potassium-40 (K-40)</option>
+        <option value="0.002">Technetium-99m (Tc-99m)</option>
+        <option value="0.0004">Americium-241 (Am-241)</option>
+        <option value="0.0003">Plutonium-238 (Pu-238)</option>
+        <option value="0.0006">Plutonium-240 (Pu-240)</option>
+        <option value="0.00012">Uranium-233 (U-233)</option>
+        <option value="0.00008">Thorium-228 (Th-228)</option>
+        <option value="0.00015">Thorium-230 (Th-230)</option>
+        <option value="0.0005">Radium-223 (Ra-223)</option>
+        <option value="0.00022">Radon-222 (Rn-222)</option>
+        <option value="0.0015">Iodine-125 (I-125)</option>
+        <option value="0.001">Iodine-123 (I-123)</option>
+        <option value="0.0025">Lutetium-177 (Lu-177)</option>
+        <option value="0.0018">Yttrium-90 (Y-90)</option>
+        <option value="0.0011">Gallium-68 (Ga-68)</option>
+        <option value="0.0009">Fluorine-18 (F-18)</option>
+        <option value="0.002">Technetium-99 (Tc-99)</option>
+        <option value="0.0014">Indium-111 (In-111)</option>
+        <option value="0.0007">Thallium-201 (Tl-201)</option>
+        <option value="0.0004">Samarium-153 (Sm-153)</option>
+        <option value="0.0016">Phosphorus-32 (P-32)</option>
+        <option value="0.0003">Strontium-89 (Sr-89)</option>
+        <option value="0.0002">Selenium-75 (Se-75)</option>
+        <option value="0.001">Cobalt-57 (Co-57)</option>
+        <option value="0.0006">Cobalt-58 (Co-58)</option>
+        <option value="0.0009">Barium-133 (Ba-133)</option>
+        <option value="0.0007">Cadmium-109 (Cd-109)</option>
+        <option value="0.0004">Europium-152 (Eu-152)</option>
+        <option value="0.0005">Manganese-54 (Mn-54)</option>
+        <option value="0.0008">Sodium-22 (Na-22)</option>
+        <option value="0.0001">Carbon-14 (C-14)</option>
+        <option value="0.00005">Tritium (H-3)</option>
+    </select>
+
+    <label for="activity">Activity (MBq):</label>
+    <input type="number" id="activity" value="1000" min="0">
+
+    <label for="doseLimit">Max Allowed Dose Rate (µSv/h):</label>
+    <input type="number" id="doseLimit" value="1" step="0.1" min="0.01">
+
+    <label for="currentDistance">Your Current Distance (meters):</label>
+    <input type="number" id="currentDistance" value="5" step="0.1" min="0">
+
+    <button onclick="calculate()">Check Safety</button>
+
+    <div class="visual-gauge" id="visualGauge">
+        <div class="gauge-marker" id="gaugeMarker"></div>
+        <div class="gauge-label">DANGER | WARNING | SAFE</div>
+    </div>
+
+    <div class="result" id="resultBox">
+        <h2>Safe Distance: <span id="distanceResult">0</span> meters</h2>
+        <p>To stay below <span id="doseRef">1</span> µSv/h</p>
+        <button onclick="exportSlide()" style="margin-top: 15px; background-color: #57cbff;">📊 Export to PowerPoint</button>
+    </div>
+
+    <div id="alertBox" class="alert-box"></div>
+</div>
+
+<canvas id="slideCanvas" width="800" height="600"></canvas>
+
+<script>
+    let lastData = {};
+
+    function calculate() {
+        const gamma = parseFloat(document.getElementById('isotope').value);
+        const activity = parseFloat(document.getElementById('activity').value);
+        const doseLimit = parseFloat(document.getElementById('doseLimit').value);
+        const currentDistance = parseFloat(document.getElementById('currentDistance').value);
+        const isotopeName = document.getElementById('isotope').options[document.getElementById('isotope').selectedIndex].text;
+
+        if (isNaN(activity) || activity <= 0 || isNaN(doseLimit) || doseLimit <= 0 || isNaN(currentDistance)) {
+            alert("Please enter valid numbers.");
+            return;
+        }
+
+        const safeDistance = Math.sqrt((gamma * activity) / doseLimit);
+        
+        document.getElementById('distanceResult').innerText = safeDistance.toFixed(2);
+        document.getElementById('doseRef').innerText = doseLimit;
+        document.getElementById('resultBox').classList.add('show');
+
+        const gauge = document.getElementById('visualGauge');
+        const marker = document.getElementById('gaugeMarker');
+        const alertBox = document.getElementById('alertBox');
+        
+        gauge.classList.add('show');
+        alertBox.className = 'alert-box';
+        
+        const maxDisplayDistance = safeDistance * 2.5; 
+        
+        let markerPercent = (currentDistance / maxDisplayDistance) * 100;
+        if (markerPercent > 100) markerPercent = 100;
+        if (markerPercent < 0) markerPercent = 0;
+
+        marker.style.left = `calc(${markerPercent}% - 3px)`;
+
+        if (currentDistance < safeDistance) {
+            alertBox.innerText = `⚠️ DANGER! Too close. Move back to ${safeDistance.toFixed(2)}m.`;
+            alertBox.classList.add('danger');
+        } else if (currentDistance >= safeDistance && currentDistance < safeDistance * 1.5) {
+            alertBox.innerText = `⚠️ WARNING. You are close to the limit.`;
+            alertBox.classList.add('warning');
+        } else {
+            alertBox.innerText = `✅ SAFE. You are at a safe distance.`;
+            alertBox.classList.add('safe');
+        }
+
+        // Сохраняем данные для слайда
+        lastData = {
+            isotope: isotopeName,
+            activity: activity,
+            doseLimit: doseLimit,
+            currentDistance: currentDistance,
+            safeDistance: safeDistance.toFixed(2)
+        };
+    }
+
+    function exportSlide() {
+        if (!lastData.safeDistance) {
+            alert("Please calculate first.");
+            return;
+        }
+
+        const canvas = document.getElementById('slideCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Фон слайда
+        ctx.fillStyle = '#0a192f';
+        ctx.fillRect(0, 0, 800, 600);
+
+        // Рамка
+        ctx.strokeStyle = '#57cbff';
+        ctx.lineWidth = 5;
+        ctx.strokeRect(10, 10, 780, 580);
+
+        // Заголовок
+        ctx.fillStyle = '#64ffda';
+        ctx.font = 'bold 36px Segoe UI';
+        ctx.textAlign = 'center';
+        ctx.fillText('☢️ Radiation Safety Report', 400, 80);
+
+        // Линия
+        ctx.beginPath();
+        ctx.moveTo(150, 100);
+        ctx.lineTo(650, 100);
+        ctx.strokeStyle = '#57cbff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Данные
+        ctx.textAlign = 'left';
+        ctx.font = '24px Segoe UI';
+        ctx.fillStyle = '#e6f1ff';
+
+        const startX = 100;
+        let startY = 160;
+        const lineHeight = 50;
+
+        ctx.fillText(`Isotope: ${lastData.isotope}`, startX, startY);
+        ctx.fillText(`Activity: ${lastData.activity} MBq`, startX, startY + lineHeight);
+        ctx.fillText(`Dose Limit: ${lastData.doseLimit} µSv/h`, startX, startY + lineHeight * 2);
+        ctx.fillText(`Current Distance: ${lastData.currentDistance} m`, startX, startY + lineHeight * 3);
+        
+        // Результат
+        ctx.fillStyle = '#64ffda';
+        ctx.font = 'bold 32px Segoe UI';
+        ctx.fillText(`Safe Distance: ${lastData.safeDistance} meters`, startX, startY + lineHeight * 4.5);
+
+        // Подпись
+        ctx.fillStyle = '#8892b0';
+        ctx.font = '18px Segoe UI';
+        ctx.textAlign = 'center';
+        ctx.fillText('Generated by Radiation Safe Distance Calculator', 400, 540);
+        ctx.fillText('Developed by Mikheil Jorbenadze, PhD', 400, 570);
+
+        // Скачивание
+        const link = document.createElement('a');
+        link.download = `Radiation_Safety_Report_${lastData.isotope}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }
+</script>
+
+</body>
+</html>
